@@ -251,8 +251,22 @@ export function computeScatter(
 
   let points = all;
   if (all.length > maxPoints) {
-    const stride = Math.ceil(all.length / maxPoints);
-    points = all.filter((_, index) => index % stride === 0);
+    // Round-based linear spacing rather than a fixed stride: a stride of
+    // ceil(n / max) undershoots the cap (4001 points with maxPoints 2000 → a
+    // stride of 3 yields 1334) and drops the final point whenever (n - 1) is
+    // not a multiple of the stride — the very point that holds the true
+    // xMax/yMax the plot's axis is scaled to. Choosing indices by rounding
+    // i * (n - 1) / (maxPoints - 1) always returns exactly `maxPoints` samples
+    // and pins the first and last (extreme) pairs.
+    const count = Math.min(maxPoints, all.length);
+    points =
+      count <= 2
+        ? [all[0], all[all.length - 1]]
+        : Array.from({ length: count }, (_, index) =>
+            index === 0
+              ? all[0]
+              : all[Math.round((index * (all.length - 1)) / (count - 1))],
+          );
   }
   return { points, total: all.length, xMin, xMax, yMin, yMax };
 }

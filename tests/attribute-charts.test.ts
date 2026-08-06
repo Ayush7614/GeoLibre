@@ -126,11 +126,26 @@ describe("computeScatter", () => {
     }));
     const result = computeScatter(data, "x", "y", 5);
     assert.ok(result);
-    // stride = ceil(10/5) = 2 → indices 0,2,4,6,8 span the whole range.
+    // Round-based linear spacing of the 10 indices down to 5, always
+    // including the first and last rows so the sample reaches the extremes
+    // the axis is scaled to.
     assert.deepEqual(
       result.points.map((p) => p.x),
-      [0, 2, 4, 6, 8],
+      [0, 2, 5, 7, 9],
     );
+  });
+
+  it("returns exactly the cap of points and always keeps the extreme rows", () => {
+    const data = Array.from({ length: 4001 }, (_, i) => ({
+      properties: { x: i, y: i },
+    }));
+    const result = computeScatter(data, "x", "y", 2000);
+    assert.ok(result);
+    assert.equal(result.points.length, 2000);
+    assert.equal(result.points[0].x, 0);
+    assert.equal(result.points[result.points.length - 1].x, 4000);
+    // No duplicate indices, so the sample is not denser than the cap.
+    assert.equal(new Set(result.points.map((p) => p.x)).size, 2000);
   });
 
   it("returns null when no row has both values", () => {
