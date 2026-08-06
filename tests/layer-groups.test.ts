@@ -403,6 +403,32 @@ describe("layer group store actions", () => {
     );
   });
 
+  it("selects the first remaining layer after deleting a group's children, like removeLayer", () => {
+    const a = useAppStore.getState().addGeoJsonLayer("A", emptyFC);
+    const b = useAppStore.getState().addGeoJsonLayer("B", emptyFC);
+    const c = useAppStore.getState().addGeoJsonLayer("C", emptyFC);
+    const gid = useAppStore.getState().addLayerGroup("G", [b]);
+    useAppStore.getState().selectLayer(b);
+    useAppStore.getState().removeLayerGroup(gid, { removeChildren: true });
+    // removeLayer falls back to the first remaining layer (store order is the
+    // reverse of panel order, so this is the panel's bottom-most). Deleting a
+    // folder that held the selected layer must pick the same neighbour.
+    assert.equal(useAppStore.getState().selectedLayerId, a);
+    assert.deepEqual(
+      useAppStore.getState().layers.map((l) => l.id),
+      [a, c],
+    );
+  });
+
+  it("falls back to null when deleting a group empties the layer list", () => {
+    const a = useAppStore.getState().addGeoJsonLayer("A", emptyFC);
+    const gid = useAppStore.getState().addLayerGroup("G", [a]);
+    useAppStore.getState().selectLayer(a);
+    useAppStore.getState().removeLayerGroup(gid, { removeChildren: true });
+    assert.equal(useAppStore.getState().layers.length, 0);
+    assert.equal(useAppStore.getState().selectedLayerId, null);
+  });
+
   it("tracks group changes in undo history", () => {
     const a = useAppStore.getState().addGeoJsonLayer("A", emptyFC);
     useAppStore.temporal.getState().clear();

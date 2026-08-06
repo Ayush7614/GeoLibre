@@ -1986,7 +1986,10 @@ export const useAppStore = create<AppState>()(
               : s.comments,
             legend: removeChildren ? scrubLegendForRemovedLayers(s.legend, removedIds) : s.legend,
             selectedLayerId: selectionRemoved
-              ? (layers[layers.length - 1]?.id ?? null)
+              ? // Match removeLayer's fallback (the first remaining layer, i.e.
+                // the panel's bottom-most) so deleting a layer and deleting a
+                // folder that held it pick the same neighbour.
+                (layers[0]?.id ?? null)
               : s.selectedLayerId,
             selectedFeatureId: selectionRemoved ? null : s.selectedFeatureId,
             selectedFeatureIds: selectionRemoved ? [] : s.selectedFeatureIds,
