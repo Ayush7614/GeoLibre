@@ -1609,10 +1609,12 @@ export const useAppStore = create<AppState>()(
         set((s) => {
           const layers = [...s.layers];
           const beforeIndex = beforeLayerId ? layers.findIndex((l) => l.id === beforeLayerId) : -1;
-          const layerWithBeforeId =
-            beforeLayerId && beforeIndex < 0
-              ? { ...layer, beforeId: beforeLayerId }
-              : { ...layer, beforeId: layer.beforeId };
+          // Only persist the ordering anchor when it names a real layer. A
+          // stale beforeId (anchor that no longer exists) would otherwise be
+          // written into the record and re-saved into every project file
+          // forever, while the layer itself renders at the end of the stack.
+          const beforeId = beforeIndex >= 0 && beforeLayerId != null ? beforeLayerId : layer.beforeId;
+          const layerWithBeforeId = { ...layer, beforeId };
           if (beforeIndex >= 0) {
             layers.splice(beforeIndex, 0, layerWithBeforeId);
           } else {

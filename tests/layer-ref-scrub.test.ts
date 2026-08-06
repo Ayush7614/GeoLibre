@@ -337,3 +337,40 @@ describe("applyProjectToStore orphan ref scrub", () => {
     assert.deepEqual(Object.keys(applied.legend.customEntries!), ["custom:standalone"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Store integration tests: addLayer ordering anchor
+// ---------------------------------------------------------------------------
+
+describe("addLayer beforeId anchor", () => {
+  beforeEach(() => {
+    useAppStore.getState().newProject({ name: "beforeId" });
+  });
+
+  it("persists beforeId only when the anchor layer exists", () => {
+    const store = useAppStore.getState();
+    store.addLayer(geojsonLayer({ id: "a", name: "a" }));
+    store.addLayer(geojsonLayer({ id: "b", name: "b" }));
+
+    store.addLayer(geojsonLayer({ id: "anchored", name: "anchored" }), "a");
+    assert.equal(useAppStore.getState().layers.find((l) => l.id === "anchored")?.beforeId, "a");
+  });
+
+  it("does not bake a dangling beforeId into the record when the anchor is gone", () => {
+    const store = useAppStore.getState();
+    store.addLayer(geojsonLayer({ id: "a", name: "a" }));
+    store.addLayer(geojsonLayer({ id: "b", name: "b" }));
+
+    // The anchor id no longer exists anywhere, so there is no layer to order
+    // the new one in front of. The layer appends at the end — but the record
+    // must not carry the stale id, which would otherwise be serialized into
+    // every project file forever.
+    store.addLayer(geojsonLayer({ id: "x", name: "x" }), "ghost-anchor");
+    const layer = useAppStore.getState().layers.find((l) => l.id === "x");
+    assert.equal(layer?.beforeId, undefined);
+    assert.equal(
+      useAppStore.getState().layers[useAppStore.getState().layers.length - 1].id,
+      "x",
+    );
+  });
+});
