@@ -58,7 +58,13 @@ export const EXPRESSION_HELPERS: Record<string, Helper> = {
     const places = digits == null ? 0 : Math.trunc(toNumber(digits));
     if (!Number.isFinite(value) || !Number.isFinite(places)) return value;
     const factor = 10 ** places;
-    return Math.round(value * factor) / factor;
+    // Round half away from zero (like QGIS) while nudging by a magnitude-
+    // relative epsilon: `1.005 * 100` is `100.49999999999999`, so a plain
+    // Math.round silently rounds it down to 1. The nudge only ever corrects
+    // binary-representation error — it is far too small to move a real value.
+    const scaled = value * factor;
+    const nudge = Math.sign(scaled) * Number.EPSILON * Math.max(1, Math.abs(scaled));
+    return Math.round(scaled + nudge) / factor;
   },
   // Conversion
   toNumber: (x) => {

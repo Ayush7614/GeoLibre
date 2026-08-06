@@ -59,6 +59,23 @@ describe("expression compilation", () => {
     assert.equal(compileExpression("$index", DISCOVERED).evaluate({}, 7), 7);
   });
 
+  it("rounds half away from zero at integer precision", () => {
+    assert.equal(compileExpression("round(2.5)", DISCOVERED).evaluate({}, 0), 3);
+    assert.equal(compileExpression("round(-2.5)", DISCOVERED).evaluate({}, 0), -3);
+    assert.equal(compileExpression("round(2.4999999)", DISCOVERED).evaluate({}, 0), 2);
+  });
+
+  it("rounds decimal values without floating-point drift", () => {
+    // 1.005 * 100 is 100.49999999999999 in IEEE-754, which a naive
+    // Math.round(value * factor) / factor silently turns into 1. These inputs
+    // must land on the value a human (and QGIS) expects.
+    assert.equal(compileExpression("round(1.005, 2)", DISCOVERED).evaluate({}, 0), 1.01);
+    assert.equal(compileExpression("round(0.285, 2)", DISCOVERED).evaluate({}, 0), 0.29);
+    assert.equal(compileExpression("round(2.675, 2)", DISCOVERED).evaluate({}, 0), 2.68);
+    assert.equal(compileExpression("round(-1.005, 2)", DISCOVERED).evaluate({}, 0), -1.01);
+    assert.equal(compileExpression("round(123.456, 2)", DISCOVERED).evaluate({}, 0), 123.46);
+  });
+
   it("handles null-ish args in string helpers without coercing to 'null'", () => {
     // replace: a null search is a no-op; a null replacement is the empty string.
     assert.equal(
